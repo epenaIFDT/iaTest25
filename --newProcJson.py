@@ -1,4 +1,4 @@
-# extraccion_componentes.py
+# extraccion_componentes_optimizado.py
 
 import json
 import re
@@ -33,32 +33,7 @@ PATRONES = {
         r'intel\s+uhd\s+graphics\s+7\d{2}',
         r'gr[áa]ficos\s+integrados'
     ],
-    "gabinete": [
-        # Mid Tower / Medium Tower
-        r'\b(mid\s*tower|midtower|medium\s*tower|mediumtower|mini[-\s]*torre)\b',
-        
-        # Formato reducido
-        r'\b(formato\s+reducido|small\s+form\s+factor|sff|mini[-\s]*itx|micro[-\s]*atx)\b',
-        
-        # Full Tower
-        r'\b(full\s*tower|fulltower|full\s*torre|torre\s*(grande)?)\b',
-        
-        # Genéricos
-        r'\b(gabinete|case|torre)\b'
-    ],
-    "fuente_poder": [
-        r'fuente de poder[^.\n]*',
-        r'\bfuente\b[^.\n]*',
-        r'wattaje[^.\n]*',
-        r'certificación[^.\n]*',
-        r'certificado[^.\n]*',
-        r'watt[^.\n]*',
-        r'\bw\b[^.\n]*'
-    ],
-    "chipset": [
-        r'chipset\s+(intel|amd)\s+[a-z]*\d{3,4}',
-        r'chipset\s+[a-z]*\d{3,4}'
-    ]
+
 }
 
 # ==========================
@@ -72,36 +47,19 @@ def buscar_patron(texto, patrones):
             return match.group(0).strip()
     return None
 
-def cortar_texto(texto, cortar=True):
-    return texto.lower()[20:] if cortar else texto.lower()
-
-def cortar_en_memoria_ram(texto):
-    return cortar_por_palabras(texto, ["memoria ram", "interfaces", "memoria:"])
-
-def cortar_antes_de_grabar(texto):
-    palabras_corte = [
-        "memoria ram", "interfaces", "memoria:", "4xdisplayport", "w6d",
-        "wotw", "w6t", "pantalla lcd", "chipset", "microsoft office", "p rometheus"
-    ]
-    return cortar_por_palabras(texto, palabras_corte)
-
-def cortar_por_palabras(texto, palabras):
-    posiciones = [re.search(palabra, texto).start() for palabra in palabras if re.search(palabra, texto)]
+def cortar_por_claves(texto, claves, offset=0):
+    texto = texto.lower()[offset:] if offset else texto.lower()
+    posiciones = [re.search(clave, texto).start() for clave in claves if re.search(clave, texto)]
     return texto[:min(posiciones)] if posiciones else texto
 
-# ==========================
-# FUNCIONES DE EXTRACCIÓN
-# ==========================
-
 def normalizar_espacios_guiones(texto):
-    """
-    Convierte múltiples espacios o guiones en uno solo y limpia texto.
-    Ejemplo: 'M ini -Tor re' -> 'mini torre'
-    """
     texto = texto.lower()
     texto = re.sub(r'[\s\-]+', ' ', texto)
     return texto.strip()
 
+# ==========================
+# FUNCIONES DE EXTRACCIÓN
+# ==========================
 
 def extraer_video(texto):
     texto = texto.lower()
@@ -115,10 +73,8 @@ def extraer_video(texto):
     return False, None, False
 
 def extraer_gabinete(texto: str):
-    texto = texto.lower()
     texto = normalizar_espacios_guiones(texto)
 
-    # Reforzar los patrones por tipo
     patrones_tipo = {
         "Mid Tower": [
             r'\b(mid\s*tower|midtower|medium\s*tower|mediumtower)\b'
@@ -131,44 +87,92 @@ def extraer_gabinete(texto: str):
         ]
     }
 
-    for tipo in ["Mid Tower", "Formato reducido", "Full Tower"]:  # Prioridad específica → general
+    for tipo in ["Mid Tower", "Formato reducido", "Full Tower"]:
         for patron in patrones_tipo[tipo]:
             if re.search(patron, texto, re.IGNORECASE):
                 return True, tipo
 
-    # Si se encuentra la palabra "gabinete" o "torre", pero no se puede clasificar con certeza
     if "gabinete" in texto or "torre" in texto:
         return True, None
 
     return False, None
 
-
-
-
-
-
-
-
-
 def extraer_fuente(texto):
-    texto_limpio = cortar_texto(texto, cortar=True)
-    mencionada = any(re.search(p, texto_limpio) for p in PATRONES["fuente_poder"])
-    
-    watt = re.search(r'(\d{3,4})\s*(w|watts)', texto_limpio)
-    cert = re.search(r'(80\s*plus\s*(gold|silver|bronze|platinum|titanium)?)|plus\s*(gold|silver|bronze|platinum|titanium)', texto_limpio)
-    
-    watt_val = f"{watt.group(1)}W" if watt else None
+    texto = texto.lower()
+
+    # Palabras clave que indican presencia de fuente
+    claves_fuente = [
+        r'fuente\s+de\s+poder',
+        r'\bfuente\b',
+        r'wattaje',
+        r'watt\b',
+        r'certificación',
+        r'certificado',
+        r'\bw\b'
+    ]
+
+    mencionada = any(re.search(p, texto) for p in claves_fuente)
+
+    # Wattaje (ej. "500W", "750 watts")
+    match_watt = re.search(r'(\d{3,4})\s*(w|watts)', texto)
+    watt_val = f"{match_watt.group(1)}W" if match_watt else None
+
+    # Certificación 80 Plus
+    match_cert = re.search(r'(80\s*plus\s*(gold|silver|bronze|platinum|titanium))|plus\s*(gold|silver|bronze|platinum|titanium)', texto)
     cert_val = None
-    if cert:
-        for g in reversed(cert.groups()):
+    if match_cert:
+        for g in reversed(match_cert.groups()):
             if g:
                 cert_val = g.strip().title() if g.lower().startswith("80") else "Plus " + g.strip().title()
                 break
 
     return mencionada or bool(watt_val or cert_val), watt_val, cert_val
 
+
 def extraer_chipset(texto):
-    return buscar_patron(cortar_texto(texto, cortar=False), PATRONES["chipset"])
+    texto = texto.lower()
+
+    # Patrones válidos
+    patrones_validos = [
+        r'chipset\s*:\s*(intel|amd)?\s*[a-z]*\d{3,4}',
+        r'(intel|amd)\s*[a-z]{1,4}\d{3,4}',
+        r'\b[a-z]{1,2}\d{3,4}\b(?=\s+armada|\s+serie)?',
+        r'chipset\s+integrado',
+        r'chipset\s+serie\s+[a-z0-9]+',
+        r'mainboard\s+chipset\s+serie\s+[a-z0-9]+',
+        r'intel\s+serie\s+[a-z0-9]+',
+        r'amd\s+serie\s+[a-z0-9]+',
+        r'chipset\s*(trx50|z79\s*0|z790)',
+        r'(intel|amd)\s*(trx50|z79\s*0|z790)'
+    ]
+
+    # Patrones que NO deben considerarse chipset (negativos)
+    patrones_excluir = [
+        r'\ba5000\b',
+        r'\ba6000\b',
+        r'\bpf2402\b',
+        r'\bpf2702\b',
+        r'\brs232\b',
+        r'\brx7600\b'  # Evita confundir con GPU Radeon RX
+    ]
+
+    # Buscar patrones válidos
+    for patron in patrones_validos:
+        match = re.search(patron, texto, re.IGNORECASE)
+        if match:
+            valor = match.group(0).strip()
+
+            # Validar contra patrones excluidos
+            if any(re.search(p, valor) for p in patrones_excluir):
+                continue
+
+            return valor[0].upper() + valor[1:]
+
+    return None
+
+
+
+
 
 # ==========================
 # PROCESAMIENTO DE REGISTROS
@@ -225,16 +229,19 @@ def guardar_resultado(original_path, resultados):
     nombre_original = os.path.basename(original_path)
     ruta_salida = os.path.join(carpeta, "det_" + nombre_original)
 
+    claves_corte = [
+        "memoria ram", "interfaces", "memoria:", "4xdisplayport", "w6d",
+        "wotw", "w6t", "pantalla lcd", "chipset", "microsoft office", "p rometheus"
+    ]
+
     for info in resultados.values():
         desc = info.get("descripcion_tarjeta_video")
         if desc and isinstance(desc, str):
-            info["descripcion_tarjeta_video"] = cortar_antes_de_grabar(desc.lower()).strip()
+            info["descripcion_tarjeta_video"] = cortar_por_claves(desc, claves_corte).strip()
 
     with open(ruta_salida, 'w', encoding='utf-8') as f:
         json.dump(resultados, f, indent=4, ensure_ascii=False)
     return ruta_salida
-
-
 
 def generar_log(resultados, ruta_original):
     carpeta = os.path.dirname(ruta_original)
