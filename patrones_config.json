@@ -1,0 +1,95 @@
+{
+    "Vastec": {
+        "Chipset": {
+            "validos": [
+                "chipset\\s*:\\s*(intel|amd)?\\s*[a-z]*\\d{3,4}",
+                "(intel|amd)\\s*[a-z]{1,4}\\d{3,4}",
+                "\\b[a-z]{1,2}\\d{3,4}\\b(?=\\s+armada|\\s+serie)?",
+                "chipset\\s+integrado",
+                "chipset\\s+serie\\s+[a-z0-9]+",
+                "mainboard\\s+chipset\\s+serie\\s+[a-z0-9]+",
+                "intel\\s+serie\\s+[a-z0-9]+",
+                "amd\\s+serie\\s+[a-z0-9]+",
+                "chipset\\s*(trx50|z79\\s*0|z790)",
+                "(intel|amd)\\s*(trx50|z79\\s*0|z790)"
+            ],
+            "excluir": [
+                "\\ba5000\\b",
+                "\\ba6000\\b",
+                "\\bpf2402\\b",
+                "\\bpf2702\\b",
+                "\\brs232\\b",
+                "\\brx7600\\b"
+            ]
+        },
+        "Fuente": {
+            "validos": [
+                "fuente\\s+de\\s+poder",
+                "\\bfuente\\b",
+                "wattaje",
+                "watt\\b",
+                "certificación",
+                "certificado",
+                "\\bw\\b"
+            ],
+            "excluir": []
+        },
+        "Gabinete": {
+            "validos": [
+                "\\b(mid\\s*tower|midtower|medium\\s*tower|mediumtower)\\b",
+                "\\b(formato\\s+reducido|small\\s+form\\s*factor|sff|mini\\s*-?\\s*itx|micro\\s*-?\\s*atx|mini\\s*-?\\s*torre|minitorre|mini\\s*torre)\\b",
+                "\\b(full\\s*tower|fulltower|full\\s*torre|torre\\s*(grande)?|tipo\\s*torre|gabinete\\s+torre|forma\\s+torre|torre\\s+pr)\\b"
+            ],
+            "excluir": []
+        },
+        "VideoInt": {
+            "validos": [
+                "gr[áa]ficos\\s+(uhd|intel|amd|vega)[^\\n,;]*",
+                "video\\s+integrado[^\\n,;]*",
+                "gr[áa]ficos\\s+integrados[^\\n,;]*",
+                "integrada|integrados|integrado",
+                "intel\\s+uhd\\s+graphics\\s+7\\d{2}",
+                "gr[áa]ficos\\s+integrados"
+            ],
+            "excluir": [
+                "memoria\\s+ram"
+            ]
+        },
+        "VideoDedicado": {
+            "validos": [
+                "tarjeta\\s+de\\s+(video|gráfica)[^\\n,;]*",
+                "video\\s+tarjeta\\s+de\\s+(video|gráfica)[^\\n,;]*",
+                "nvidia\\s.*?rtx\\s?\\d{3,4}[^,;\\n]*",
+                "rtx\\s\\d{3,4}[^,;\\n]*",
+                "gtx\\s\\d{3,4}[^,;\\n]*",
+                "rx\\s\\d{3,4}[^,;\\n]*",
+                "geforce\\s.*?rtx\\s?\\d{3,4}[^,;\\n]*",
+                "geforce\\s.*?gtx\\s?\\d{3,4}[^,;\\n]*",
+                "geforce\\s.*?rx\\s?\\d{3,4}[^,;\\n]*",
+                "tarjeta\\s+de\\s+video\\s+rtx\\s*\\d{3,4}[^,;\\n]*",
+                "tarjeta\\s+de\\s+video\\s+rtx\\s*\\d{3,4}.*?\\d{1,2}\\s*gb.*?gddr\\d.*?ecc"
+            ],
+            "excluir": []
+        },
+        "FuenteCert": {
+            "validos": [],
+            "excluir": []
+        }
+    },
+    "OtraMarca": {
+        "Chipset": {
+            "validos": [
+                "chipset\\s*:\\s*(intel|amd)?\\s*[a-z]*\\d{3,4}"
+            ],
+            "excluir": [
+                "rx7600"
+            ]
+        },
+        "Video": {
+            "validos": [
+                "(nvidia|amd)\\s+(rtx|gtx)\\s*\\d{3,4}"
+            ],
+            "excluir": []
+        }
+    }
+}
